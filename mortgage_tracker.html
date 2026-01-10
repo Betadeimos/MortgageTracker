@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mortgage & Equity Tracker</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #ecf0f1;
+            --accent-color: #3498db;
+            --bg-color: #1e272e;
+            --card-bg: #2f3640;
+            --input-bg: #353b48;
+            --text-color: #dcdde1;
+            --border-radius: 8px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            background-color: var(--card-bg);
+            padding: 10px 30px 20px 30px; /* Reduced top and bottom internal padding */
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: var(--primary-color);
+            margin: 5px 0 15px 0; /* Tighter margins for headers */
+        }
+
+        .initial-shares {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            margin-bottom: 15px; /* Reduced margin */
+            padding: 8px;
+            background: rgba(52, 152, 219, 0.1);
+            border-radius: var(--border-radius);
+            font-size: 0.9em;
+        }
+
+        .initial-shares b {
+            color: var(--accent-color);
+        }
+
+        .grid-inputs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Slightly narrower min-width */
+            gap: 12px 20px; /* Tighter vertical gap */
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #485460;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-size: 0.82em; /* Slightly smaller text to prevent wrapping */
+            margin-bottom: 3px;
+            color: #95a5a6;
+            font-weight: 600;
+            white-space: nowrap; /* Prevent symbol wrapping */
+        }
+
+        input {
+            padding: 10px;
+            border: 1px solid #485460;
+            border-radius: 4px;
+            font-size: 1em;
+            background-color: var(--input-bg);
+            color: white;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            border-color: var(--accent-color);
+            outline: none;
+        }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background-color: #353b48;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            text-align: center;
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .card h3 {
+            margin: 0 0 10px 0;
+            font-size: 0.85em;
+            color: #95a5a6;
+            text-transform: uppercase;
+        }
+
+        .card .value {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+            margin-bottom: 40px;
+            background: #2f3640;
+            padding: 10px;
+            border-radius: var(--border-radius);
+        }
+
+        .equity-section {
+            background-color: #1e272e;
+            padding: 20px;
+            border-radius: var(--border-radius);
+        }
+
+        .equity-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            text-align: center;
+        }
+
+        .equity-box {
+            background: #2f3640;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .equity-box h3 {
+            color: var(--accent-color);
+            margin-top: 0;
+        }
+
+        .percentage {
+            font-size: 2em;
+            font-weight: bold;
+            color: #ecf0f1;
+            display: block;
+            margin: 10px 0;
+        }
+
+        .equity-details {
+            font-size: 0.9em;
+            color: #95a5a6;
+        }
+
+        @media (max-width: 600px) {
+            .equity-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Floating Shares Calculator</h1>
+
+    <div class="initial-shares">
+        <span>Initial Davide: <b id="initDavidePct">0%</b></span>
+        <span>Initial Giada: <b id="initGiadaPct">0%</b></span>
+    </div>
+
+    <!-- Inputs -->
+    <div class="grid-inputs">
+        <div class="input-group">
+            <label for="mortgageAmount">Mortgage Amount (£)</label>
+            <input type="number" id="mortgageAmount" value="325000">
+        </div>
+        <div class="input-group">
+            <label for="interestRate">Interest Rate (%)</label>
+            <input type="number" id="interestRate" value="3.88" step="0.01">
+        </div>
+        <div class="input-group">
+            <label for="termYears">Term (Years)</label>
+            <input type="number" id="termYears" value="35">
+        </div>
+        <div class="input-group">
+            <label for="monthlyPayment">Monthly Payment (£)</label>
+            <input type="number" id="monthlyPayment" value="1415.8">
+        </div>
+        <div class="input-group">
+            <label for="depositDavide">Davide's Deposit (£)</label>
+            <input type="number" id="depositDavide" value="116000">
+        </div>
+        <div class="input-group">
+            <label for="depositGiada">Giada's Deposit (£)</label>
+            <input type="number" id="depositGiada" value="62500">
+        </div>
+        <div class="input-group">
+            <label for="overpayDavide">Davide Monthly Overpay (£)</label>
+            <input type="number" id="overpayDavide" value="0">
+        </div>
+        <div class="input-group">
+            <label for="overpayGiada">Giada Monthly Overpay (£)</label>
+            <input type="number" id="overpayGiada" value="0">
+        </div>
+        <div class="input-group">
+            <label for="lumpDavide">Davide's Lump Sum (£)</label>
+            <input type="number" id="lumpDavide" value="0">
+        </div>
+        <div class="input-group">
+            <label for="lumpGiada">Giada's Lump Sum (£)</label>
+            <input type="number" id="lumpGiada" value="0">
+        </div>
+    </div>
+
+    <!-- Real-time Data Summary -->
+    <div class="summary-cards">
+        <div class="card">
+            <h3>Total Paid</h3>
+            <div class="value" id="valTotalPaid">£0</div>
+        </div>
+        <div class="card">
+            <h3>Total Interest</h3>
+            <div class="value" id="valTotalInterest">£0</div>
+        </div>
+        <div class="card">
+            <h3>Total Principal</h3>
+            <div class="value" id="valTotalPrincipal">£0</div>
+        </div>
+        <div class="card">
+            <h3>Time Saved</h3>
+            <div class="value" id="valTimeSaved">0y 0m</div>
+        </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="chart-container">
+        <canvas id="mortgageChart"></canvas>
+    </div>
+
+    <!-- Floating Shares -->
+    <div class="equity-section">
+        <h2>Floating Shares (Ownership %)</h2>
+        <div class="equity-grid">
+            <div class="equity-box">
+                <h3>Davide</h3>
+                <span class="percentage" id="davidePercent">0%</span>
+                <div class="equity-details">Initial: £<span id="davideInitial"></span></div>
+            </div>
+            <div class="equity-box">
+                <h3>Giada</h3>
+                <span class="percentage" id="giadaPercent">0%</span>
+                <div class="equity-details">Initial: £<span id="giadaInitial"></span></div>
+            </div>
+        </div>
+        <p style="text-align: center; margin-top: 15px; font-size: 0.85em; color: #777;">
+            Formula: (Initial Deposit + 50% of Cumulative Principal Paid) / (Total Deposits + Total Principal Paid)
+        </p>
+    </div>
+</div>
+
+<script>
+    // Elements
+    const inputs = {
+        amount: document.getElementById('mortgageAmount'),
+        rate: document.getElementById('interestRate'),
+        term: document.getElementById('termYears'),
+        payment: document.getElementById('monthlyPayment'),
+        depDavide: document.getElementById('depositDavide'),
+        depGiada: document.getElementById('depositGiada'),
+        overDavide: document.getElementById('overpayDavide'),
+        overGiada: document.getElementById('overpayGiada'),
+        lumpDavide: document.getElementById('lumpDavide'),
+        lumpGiada: document.getElementById('lumpGiada')
+    };
+
+    const display = {
+        totalPaid: document.getElementById('valTotalPaid'),
+        interest: document.getElementById('valTotalInterest'),
+        principal: document.getElementById('valTotalPrincipal'),
+        timeSaved: document.getElementById('valTimeSaved'),
+        dPercent: document.getElementById('davidePercent'),
+        gPercent: document.getElementById('giadaPercent'),
+        dInitial: document.getElementById('davideInitial'),
+        gInitial: document.getElementById('giadaInitial'),
+        initD: document.getElementById('initDavidePct'),
+        initG: document.getElementById('initGiadaPct')
+    };
+
+    let chart;
+
+    // Helper: Format Currency
+    const fmtMoney = (num) => {
+        return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num);
+    };
+
+    // Calculation Logic
+    function calculateMortgage() {
+        // Parse Inputs
+        const P = parseFloat(inputs.amount.value); // Principal
+        const r_annual = parseFloat(inputs.rate.value);
+        const r = (r_annual / 100) / 12; // Monthly rate
+        const years = parseFloat(inputs.term.value);
+        const n = years * 12; // Total months
+        
+        let M = parseFloat(inputs.payment.value); // Monthly Payment
+        
+        const depD = parseFloat(inputs.depDavide.value);
+        const depG = parseFloat(inputs.depGiada.value);
+
+        const overD = parseFloat(inputs.overDavide.value) || 0;
+        const overG = parseFloat(inputs.overGiada.value) || 0;
+        
+        const lumpD = parseFloat(inputs.lumpDavide.value) || 0;
+        const lumpG = parseFloat(inputs.lumpGiada.value) || 0;
+
+        // -- SMART SPREAD CALCULATION --
+        // We need to find the monthly spread amount such that: SpreadAmount * ActualMonths = LumpSum
+        // Since ActualMonths depends on the SpreadAmount (more spread -> shorter term), we iterate.
+        
+        let estimatedMonths = n; // Start with full term
+        let spreadD = 0;
+        let spreadG = 0;
+
+        // Iterative solver (converges quickly)
+        for (let i = 0; i < 10; i++) {
+            // Calculate proposed monthly spread based on current estimate
+            spreadD = estimatedMonths > 0 ? lumpD / estimatedMonths : 0;
+            spreadG = estimatedMonths > 0 ? lumpG / estimatedMonths : 0;
+
+            const totalMonthlyD = overD + spreadD;
+            const totalMonthlyG = overG + spreadG;
+
+            // Run a quick simulation to find new duration
+            let simBalance = P;
+            let simMonth = 0;
+            for (let m = 1; m <= n; m++) {
+                const interest = simBalance * r;
+                let principal = M - interest;
+                if (simBalance < principal) principal = simBalance;
+                
+                simBalance -= principal;
+
+                // Apply Overpayments
+                let od = totalMonthlyD; 
+                if (simBalance < od) od = simBalance;
+                simBalance -= od;
+
+                let og = totalMonthlyG; 
+                if (simBalance < og) og = simBalance;
+                simBalance -= og;
+
+                simMonth = m;
+                if (simBalance <= 0.01) break;
+            }
+
+            // Update estimate
+            if (Math.abs(simMonth - estimatedMonths) <= 1) {
+                estimatedMonths = simMonth;
+                break; 
+            }
+            estimatedMonths = simMonth;
+        }
+
+        // Recalculate final spread based on the converged months
+        spreadD = estimatedMonths > 0 ? lumpD / estimatedMonths : 0;
+        spreadG = estimatedMonths > 0 ? lumpG / estimatedMonths : 0;
+
+
+        // -- AMORTIZATION LOOP (Main) --
+        let balance = P;
+        let totalInterest = 0;
+        let totalPrincipalStandard = 0; // Principal paid via standard EMI
+        let totalOverpayD = 0;
+        let totalOverpayG = 0;
+
+        // Data for Chart
+        const labels = [];
+        const dataBalance = [];
+        const dataInterest = [];
+        const dataDavidePct = [];
+        const dataGiadaPct = [];
+
+        // Push initial state (Year 0)
+        labels.push(0);
+        dataBalance.push(balance); 
+        dataInterest.push(0);
+        
+        // Initial Equity Calculation
+        const initialTotalEquity = depD + depG;
+        const initialDavidePct = initialTotalEquity > 0 ? (depD / initialTotalEquity) * 100 : 0;
+        const initialGiadaPct = initialTotalEquity > 0 ? (depG / initialTotalEquity) * 100 : 0;
+
+        display.initD.innerText = initialDavidePct.toFixed(2) + '%';
+        display.initG.innerText = initialGiadaPct.toFixed(2) + '%';
+
+        if (initialTotalEquity > 0) {
+            dataDavidePct.push(initialDavidePct);
+            dataGiadaPct.push(initialGiadaPct);
+        } else {
+            dataDavidePct.push(0);
+            dataGiadaPct.push(0);
+        }
+
+        // We simulate month by month
+        let monthsPaid = 0;
+        let isPaidOff = false;
+
+        for (let month = 1; month <= n; month++) {
+            if (isPaidOff) break;
+
+            // 1. Calculate Standard Interest and Principal components
+            const interestPayment = balance * r;
+            let principalPaymentStandard = M - interestPayment;
+            
+            // If the standard payment clears the balance, cap it
+            if (balance < principalPaymentStandard) {
+                principalPaymentStandard = balance;
+            }
+
+            // 2. Apply Standard Payment
+            balance -= principalPaymentStandard;
+            if (balance < 0.01) balance = 0; // Floating point fix
+            
+            totalInterest += interestPayment;
+            totalPrincipalStandard += principalPaymentStandard;
+
+            // 3. Apply Overpayments (Monthly + Spread)
+            let actualOverD = 0;
+            let actualOverG = 0;
+
+            const effectiveOverD = overD + spreadD;
+            const effectiveOverG = overG + spreadG;
+
+            if (balance > 0) {
+                actualOverD = effectiveOverD;
+                if (balance < actualOverD) {
+                    actualOverD = balance;
+                }
+                balance -= actualOverD;
+                if (balance < 0.01) balance = 0;
+                totalOverpayD += actualOverD;
+            }
+
+            if (balance > 0) {
+                actualOverG = effectiveOverG;
+                if (balance < actualOverG) {
+                    actualOverG = balance;
+                }
+                balance -= actualOverG;
+                if (balance < 0.01) balance = 0;
+                totalOverpayG += actualOverG;
+            }
+            
+            monthsPaid = month;
+
+            // Record data every 12 months (Yearly) OR if it's the very last month of calculation (payoff month)
+            if (month % 12 === 0 || balance === 0) {
+                // If it's a payoff month that isn't a year end, we still push a data point to show the sharp drop
+                // But chart expects labels to be aligned.
+                // If we want exact payoff date on chart, we push a float label (e.g. 25.5 years)
+                const currentYear = month / 12;
+
+                // Avoid duplicate points if payoff is exactly at year end
+                const lastLabel = labels[labels.length - 1];
+                if (currentYear !== lastLabel) {
+                    labels.push(parseFloat(currentYear.toFixed(2)));
+                    dataBalance.push(balance);
+                    dataInterest.push(totalInterest);
+                    
+                    // Floating Share at this point in time
+                    const currentTotalEquity = depD + depG + totalPrincipalStandard + totalOverpayD + totalOverpayG;
+                    
+                    const currentDavideEquity = depD + (0.5 * totalPrincipalStandard) + totalOverpayD;
+                    const currentGiadaEquity = depG + (0.5 * totalPrincipalStandard) + totalOverpayG;
+                    
+                    if (currentTotalEquity > 0) {
+                        dataDavidePct.push((currentDavideEquity / currentTotalEquity) * 100);
+                        dataGiadaPct.push((currentGiadaEquity / currentTotalEquity) * 100);
+                    } else {
+                        dataDavidePct.push(0);
+                        dataGiadaPct.push(0);
+                    }
+                }
+            }
+
+            if (balance === 0) {
+                isPaidOff = true;
+            }
+        }
+
+        // -- UPDATE DISPLAY --
+        const totalPrincipalPaid = totalPrincipalStandard + totalOverpayD + totalOverpayG;
+        const totalPaidOverall = depD + depG + totalPrincipalPaid + totalInterest;
+
+        // Calculate Time Saved
+        const totalMonthsSaved = n - monthsPaid;
+        const yearsSaved = Math.floor(totalMonthsSaved / 12);
+        const monthsSavedRemainder = totalMonthsSaved % 12;
+        display.timeSaved.innerText = `${yearsSaved}y ${monthsSavedRemainder}m`;
+
+        // Use final values
+        display.totalPaid.innerText = fmtMoney(totalPaidOverall);
+        display.interest.innerText = fmtMoney(totalInterest);
+        display.principal.innerText = fmtMoney(totalPrincipalPaid);
+        display.dInitial.innerText = depD.toLocaleString();
+        display.gInitial.innerText = depG.toLocaleString();
+
+        // -- FLOATING SHARES CALCULATION (Final) --
+        const totalDeposits = depD + depG;
+        const totalValue = totalDeposits + totalPrincipalPaid;
+
+        const davideEquity = depD + (0.5 * totalPrincipalStandard) + totalOverpayD;
+        const giadaEquity = depG + (0.5 * totalPrincipalStandard) + totalOverpayG;
+
+        const davidePct = totalValue > 0 ? (davideEquity / totalValue) * 100 : 0;
+        const giadaPct = totalValue > 0 ? (giadaEquity / totalValue) * 100 : 0;
+
+        display.dPercent.innerText = davidePct.toFixed(2) + '%';
+        display.gPercent.innerText = giadaPct.toFixed(2) + '%';
+
+        // -- CHART UPDATE --
+        updateChart(labels, dataBalance, dataInterest, dataDavidePct, dataGiadaPct);
+    }
+
+    // Chart.js Logic
+    function updateChart(labels, dataBalance, dataInterest, dataDavidePct, dataGiadaPct) {
+        const ctx = document.getElementById('mortgageChart').getContext('2d');
+
+        if (chart) {
+            chart.destroy();
+        }
+
+        chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Remaining Balance',
+                        data: dataBalance,
+                        borderColor: '#e74c3c',
+                        backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Cumulative Interest Paid',
+                        data: dataInterest,
+                        borderColor: '#f1c40f',
+                        backgroundColor: 'rgba(241, 196, 15, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: "Davide's Ownership %",
+                        data: dataDavidePct,
+                        borderColor: '#2ecc71',
+                        borderDash: [5, 5],
+                        backgroundColor: 'transparent',
+                        fill: false,
+                        tension: 0.3,
+                        yAxisID: 'y1'
+                    },
+                    {
+                        label: "Giada's Ownership %",
+                        data: dataGiadaPct,
+                        borderColor: '#9b59b6', // Purple for distinction
+                        borderDash: [5, 5],
+                        backgroundColor: 'transparent',
+                        fill: false,
+                        tension: 0.3,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Years',
+                            color: '#95a5a6'
+                        },
+                        grid: {
+                            color: '#485460'
+                        },
+                        ticks: {
+                            color: '#95a5a6'
+                        }
+                    },
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                        grid: {
+                            color: '#485460'
+                        },
+                        ticks: {
+                            color: '#95a5a6',
+                            callback: function(value) {
+                                return '£' + value / 1000 + 'k';
+                            }
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        // Removed fixed min/max to allow adaptive scaling
+                        grid: {
+                            drawOnChartArea: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Ownership %',
+                            color: '#95a5a6'
+                        },
+                        ticks: {
+                            color: '#95a5a6',
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: '#dcdde1'
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: '#2f3640',
+                        titleColor: '#ecf0f1',
+                        bodyColor: '#dcdde1',
+                        borderColor: '#485460',
+                        borderWidth: 1,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    // Identify datasets by yAxisID or Index
+                                    if (context.dataset.yAxisID === 'y1') {
+                                        label += context.parsed.y.toFixed(2) + '%';
+                                    } else {
+                                        label += new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(context.parsed.y);
+                                    }
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Auto-update Monthly Payment when Amount/Rate/Term changes?
+    // The prompt says "Pre-filled... Monthly Payment £1415". 
+    // If I change rate, should I update Payment OR Term? 
+    // Standard calculators update Payment.
+    function updateMonthlyPayment() {
+        const P = parseFloat(inputs.amount.value);
+        const r_annual = parseFloat(inputs.rate.value);
+        const r = (r_annual / 100) / 12;
+        const years = parseFloat(inputs.term.value);
+        const n = years * 12;
+
+        if (P && r && n) {
+            // M = P [ i(1 + i)^n ] / [ (1 + i)^n – 1 ]
+            const numerator = P * r * Math.pow(1 + r, n);
+            const denominator = Math.pow(1 + r, n) - 1;
+            const M = numerator / denominator;
+            inputs.payment.value = Math.round(M); // Round to integer for cleaner UI, or toFixed(2)
+        }
+        calculateMortgage();
+    }
+
+    // Listeners
+    // If user changes fundamental params, recalc payment first
+    inputs.amount.addEventListener('input', updateMonthlyPayment);
+    inputs.rate.addEventListener('input', updateMonthlyPayment);
+    inputs.term.addEventListener('input', updateMonthlyPayment);
+    
+    // If user manually changes payment or deposits, just recalc the graph
+    inputs.payment.addEventListener('change', calculateMortgage); // Change event to allow manual override without fighting auto-calc
+    inputs.depDavide.addEventListener('input', calculateMortgage);
+    inputs.depGiada.addEventListener('input', calculateMortgage);
+    inputs.overDavide.addEventListener('input', calculateMortgage);
+    inputs.overGiada.addEventListener('input', calculateMortgage);
+    inputs.lumpDavide.addEventListener('input', calculateMortgage);
+    inputs.lumpGiada.addEventListener('input', calculateMortgage);
+
+    // Initial Run
+    calculateMortgage();
+
+</script>
+
+</body>
+</html>
