@@ -250,7 +250,7 @@
         <div class="section-label">Mortgage Details</div>
         <div class="input-group">
             <label for="mortgageAmount">Mortgage Amount (£)</label>
-            <input type="number" id="mortgageAmount" value="325000">
+            <input type="text" id="mortgageAmount" value="325,000">
         </div>
         <div class="input-group">
             <label for="interestRate">Interest Rate (%)</label>
@@ -262,17 +262,17 @@
         </div>
         <div class="input-group">
             <label for="monthlyPayment">Monthly Payment (£)</label>
-            <input type="number" id="monthlyPayment" value="1415.8" step="0.1">
+            <input type="text" id="monthlyPayment" value="1,415.80">
         </div>
 
         <div class="section-label">Deposits & Property</div>
         <div class="input-group">
             <label for="depositDavide">Davide Deposit (£)</label>
-            <input type="number" id="depositDavide" value="116000">
+            <input type="text" id="depositDavide" value="116,000">
         </div>
         <div class="input-group">
             <label for="depositGiada">Giada Deposit (£)</label>
-            <input type="number" id="depositGiada" value="62500">
+            <input type="text" id="depositGiada" value="62,500">
         </div>
         <div class="input-group">
             <label>Appreciation Rate (%)</label>
@@ -282,20 +282,20 @@
         <div class="section-label">Overpayments</div>
         <div class="input-group">
             <label for="overpayDavide">Davide Monthly (£)</label>
-            <input type="number" id="overpayDavide" value="0">
+            <input type="text" id="overpayDavide" value="0">
         </div>
         <div class="input-group">
             <label for="overpayGiada">Giada Monthly (£)</label>
-            <input type="number" id="overpayGiada" value="0">
+            <input type="text" id="overpayGiada" value="0">
         </div>
         
         <div class="input-group">
             <label>Davide Lump Sum (£)</label>
-            <input type="number" id="lumpDavide" value="0">
+            <input type="text" id="lumpDavide" value="0">
         </div>
         <div class="input-group">
             <label>Giada Lump Sum (£)</label>
-            <input type="number" id="lumpGiada" value="0">
+            <input type="text" id="lumpGiada" value="0">
         </div>
     </div>
 
@@ -421,26 +421,45 @@
         return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num);
     };
 
+    // Helper: Parse Number from formatted string
+    const parseNum = (str) => {
+        if (!str) return 0;
+        // Remove commas and spaces
+        const clean = str.toString().replace(/[, ]/g, '');
+        const val = parseFloat(clean);
+        return isNaN(val) ? 0 : val;
+    };
+
+    // Helper: Format Input Value with Commas
+    const formatInput = (input) => {
+        const val = parseNum(input.value);
+        if (input.id === 'monthlyPayment') {
+             input.value = val.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        } else {
+             input.value = val.toLocaleString('en-GB');
+        }
+    };
+
     // Calculation Logic
     function calculateMortgage() {
         // Parse Inputs
-        const P = parseFloat(inputs.amount.value);
+        const P = parseNum(inputs.amount.value);
         const r_annual = parseFloat(inputs.rate.value);
         const r = (r_annual / 100) / 12;
         const years = parseFloat(inputs.term.value);
         const n = years * 12;
         
-        let M = parseFloat(inputs.payment.value);
+        let M = parseNum(inputs.payment.value);
         
-        const depD = parseFloat(inputs.depDavide.value);
-        const depG = parseFloat(inputs.depGiada.value);
+        const depD = parseNum(inputs.depDavide.value);
+        const depG = parseNum(inputs.depGiada.value);
         const appRate = parseFloat(inputs.appreciation.value) / 100;
 
-        const overD = parseFloat(inputs.overDavide.value) || 0;
-        const overG = parseFloat(inputs.overGiada.value) || 0;
+        const overD = parseNum(inputs.overDavide.value);
+        const overG = parseNum(inputs.overGiada.value);
         
-        const lumpD = parseFloat(inputs.lumpDavide.value) || 0;
-        const lumpG = parseFloat(inputs.lumpGiada.value) || 0;
+        const lumpD = parseNum(inputs.lumpDavide.value);
+        const lumpG = parseNum(inputs.lumpGiada.value);
 
         // -- SMART SPREAD CALCULATION --
         let estimatedMonths = n;
@@ -636,9 +655,9 @@
         }
 
         if (data) {
-            const P = parseFloat(inputs.amount.value);
-            const depD = parseFloat(inputs.depDavide.value);
-            const depG = parseFloat(inputs.depGiada.value);
+            const P = parseNum(inputs.amount.value);
+            const depD = parseNum(inputs.depDavide.value);
+            const depG = parseNum(inputs.depGiada.value);
             const appRate = parseFloat(inputs.appreciation.value) / 100;
             const purchasePrice = P + depD + depG;
 
@@ -672,7 +691,13 @@
         const ctx = document.getElementById('mortgageChart').getContext('2d');
 
         if (chart) {
-            chart.destroy();
+            chart.data.labels = labels;
+            chart.data.datasets[0].data = dataBalance;
+            chart.data.datasets[1].data = dataInterest;
+            chart.data.datasets[2].data = dataDavidePct;
+            chart.data.datasets[3].data = dataGiadaPct;
+            chart.update();
+            return;
         }
 
         chart = new Chart(ctx, {
@@ -723,6 +748,7 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: false,
                 interaction: {
                     mode: 'index',
                     intersect: false,
@@ -739,7 +765,7 @@
                         position: 'left',
                         beginAtZero: true,
                         grid: { color: '#485460' },
-                        ticks: { color: '#95a5a6', callback: (v) => '£' + v/1000 + 'k' }
+                        ticks: { color: '#95a5a6', callback: (v) => '£' + v.toLocaleString('en-GB') }
                     },
                     y1: {
                         type: 'linear',
@@ -780,7 +806,7 @@
 
     // Auto-update Monthly Payment
     function updateMonthlyPayment() {
-        const P = parseFloat(inputs.amount.value);
+        const P = parseNum(inputs.amount.value);
         const r_annual = parseFloat(inputs.rate.value);
         const r = (r_annual / 100) / 12;
         const years = parseFloat(inputs.term.value);
@@ -790,12 +816,19 @@
             const numerator = P * r * Math.pow(1 + r, n);
             const denominator = Math.pow(1 + r, n) - 1;
             const M = numerator / denominator;
-            inputs.payment.value = Math.round(M);
+            inputs.payment.value = M.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
         calculateMortgage();
     }
 
     // Listeners
+    // Format on blur
+    Object.values(inputs).forEach(input => {
+        if(input.type === 'text') {
+            input.addEventListener('blur', () => formatInput(input));
+        }
+    });
+
     inputs.amount.addEventListener('input', updateMonthlyPayment);
     inputs.rate.addEventListener('input', updateMonthlyPayment);
     inputs.term.addEventListener('input', updateMonthlyPayment);
