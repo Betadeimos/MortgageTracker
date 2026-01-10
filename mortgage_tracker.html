@@ -59,16 +59,18 @@
 
         .grid-inputs {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* Allow growing to fill space */
             gap: 12px 20px;
             margin-bottom: 20px;
             padding-bottom: 15px;
             border-bottom: 1px solid #485460;
+            width: 100%; /* Ensure full width */
         }
 
         .input-group {
             display: flex;
             flex-direction: column;
+            width: 100%; /* Fill column */
         }
 
         label {
@@ -76,7 +78,6 @@
             margin-bottom: 3px;
             color: #95a5a6;
             font-weight: 600;
-            white-space: nowrap;
         }
 
         input {
@@ -87,6 +88,8 @@
             background-color: var(--input-bg);
             color: white;
             transition: border-color 0.3s;
+            width: 100%; /* Fill input group */
+            box-sizing: border-box; /* Include padding in width */
         }
 
         input:focus {
@@ -240,11 +243,6 @@
 <div class="container">
     <h1>Floating Shares Calculator</h1>
 
-    <div class="initial-shares">
-        <span>Initial Davide: <b id="initDavidePct">0%</b></span>
-        <span>Initial Giada: <b id="initGiadaPct">0%</b></span>
-    </div>
-
     <!-- Inputs -->
     <div class="grid-inputs">
         <div class="section-label">Mortgage Details</div>
@@ -296,6 +294,26 @@
         <div class="input-group">
             <label>Giada Lump Sum (£)</label>
             <input type="text" id="lumpGiada" value="0">
+        </div>
+    </div>
+
+    <!-- Ownership Splits (Central) -->
+    <div style="display: flex; gap: 20px; margin-bottom: 20px;">
+        <!-- Initial Split -->
+        <div style="flex: 1; background: rgba(52, 152, 219, 0.1); padding: 12px; border-radius: 8px; text-align: center; border: 1px solid rgba(52, 152, 219, 0.3);">
+            <h4 style="margin: 0 0 8px 0; color: var(--accent-color); font-size: 0.9em; text-transform: uppercase;">Initial Split (Year 0)</h4>
+            <div style="display: flex; justify-content: space-around; font-size: 1.1em;">
+                 <div>Davide: <strong id="initDavidePct" style="color: #ecf0f1;">0%</strong></div>
+                 <div>Giada: <strong id="initGiadaPct" style="color: #ecf0f1;">0%</strong></div>
+            </div>
+        </div>
+        <!-- Final Split -->
+        <div style="flex: 1; background: rgba(46, 204, 113, 0.1); padding: 12px; border-radius: 8px; text-align: center; border: 1px solid rgba(46, 204, 113, 0.3);">
+            <h4 id="sharesTitle" style="margin: 0 0 8px 0; color: #2ecc71; font-size: 0.9em; text-transform: uppercase;">Projected Split (Year 35)</h4>
+            <div style="display: flex; justify-content: space-around; font-size: 1.1em;">
+                 <div>Davide: <strong id="davidePercent" style="color: #ecf0f1;">0%</strong></div>
+                 <div>Giada: <strong id="giadaPercent" style="color: #ecf0f1;">0%</strong></div>
+            </div>
         </div>
     </div>
 
@@ -351,26 +369,6 @@
     <div class="chart-container">
         <canvas id="mortgageChart"></canvas>
     </div>
-
-    <!-- Floating Shares -->
-    <div class="equity-section">
-        <h2 id="sharesTitle">Final Floating Shares</h2>
-        <div class="equity-grid">
-            <div class="equity-box">
-                <h3>Davide</h3>
-                <span class="percentage" id="davidePercent">0%</span>
-                <div class="equity-details">Initial: £<span id="davideInitial"></span></div>
-            </div>
-            <div class="equity-box">
-                <h3>Giada</h3>
-                <span class="percentage" id="giadaPercent">0%</span>
-                <div class="equity-details">Initial: £<span id="giadaInitial"></span></div>
-            </div>
-        </div>
-        <p style="text-align: center; margin-top: 15px; font-size: 0.85em; color: #777;">
-            Formula: (Initial Deposit + 50% of Cumulative Principal Paid + 100% of Own Overpayments) / Total Equity
-        </p>
-    </div>
 </div>
 
 <script>
@@ -398,8 +396,6 @@
         timeSaved: document.getElementById('valTimeSaved'),
         dPercent: document.getElementById('davidePercent'),
         gPercent: document.getElementById('giadaPercent'),
-        dInitial: document.getElementById('davideInitial'),
-        gInitial: document.getElementById('giadaInitial'),
         initD: document.getElementById('initDavidePct'),
         initG: document.getElementById('initGiadaPct'),
 
@@ -628,8 +624,6 @@
         display.totalPaid.innerText = fmtMoney(totalPaidOverall);
         display.interest.innerText = fmtMoney(totalInterest);
         display.principal.innerText = fmtMoney(totalPrincipalPaid);
-        display.dInitial.innerText = depD.toLocaleString();
-        display.gInitial.innerText = depG.toLocaleString();
 
         // -- CHART UPDATE --
         updateChart(labels, dataBalance, dataInterest, dataDavidePct, dataGiadaPct);
@@ -676,7 +670,7 @@
             display.scenGiada.innerText = fmtMoney(cashG);
 
             // Update Final Floating Shares section to match slider year
-            display.sharesTitle.innerText = `Floating Shares (Year ${year})`;
+            display.sharesTitle.innerText = `Projected Split (Year ${year})`;
             display.dPercent.innerText = data.dPct.toFixed(2) + '%';
             display.gPercent.innerText = data.gPct.toFixed(2) + '%';
         }
