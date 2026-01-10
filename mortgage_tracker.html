@@ -281,19 +281,23 @@
         <div class="input-group">
             <label for="overpayDavide">Davide Monthly (£)</label>
             <input type="text" id="overpayDavide" value="0">
+            <input type="range" id="overpayDavideSlider" min="0" max="2000" value="0" step="10" style="margin-top:5px; height:15px;">
         </div>
         <div class="input-group">
             <label for="overpayGiada">Giada Monthly (£)</label>
             <input type="text" id="overpayGiada" value="0">
+            <input type="range" id="overpayGiadaSlider" min="0" max="2000" value="0" step="10" style="margin-top:5px; height:15px;">
         </div>
         
         <div class="input-group">
             <label>Davide Lump Sum (£)</label>
             <input type="text" id="lumpDavide" value="0">
+            <input type="range" id="lumpDavideSlider" min="0" max="100000" value="0" step="500" style="margin-top:5px; height:15px;">
         </div>
         <div class="input-group">
             <label>Giada Lump Sum (£)</label>
             <input type="text" id="lumpGiada" value="0">
+            <input type="range" id="lumpGiadaSlider" min="0" max="100000" value="0" step="500" style="margin-top:5px; height:15px;">
         </div>
     </div>
 
@@ -386,7 +390,13 @@
         overGiada: document.getElementById('overpayGiada'),
         
         lumpDavide: document.getElementById('lumpDavide'),
-        lumpGiada: document.getElementById('lumpGiada')
+        lumpGiada: document.getElementById('lumpGiada'),
+        
+        // Sliders
+        overDavideSlider: document.getElementById('overpayDavideSlider'),
+        overGiadaSlider: document.getElementById('overpayGiadaSlider'),
+        lumpDavideSlider: document.getElementById('lumpDavideSlider'),
+        lumpGiadaSlider: document.getElementById('lumpGiadaSlider')
     };
 
     const display = {
@@ -829,8 +839,24 @@
     
     Object.values(inputs).forEach(input => {
         if(input !== inputs.amount && input !== inputs.rate && input !== inputs.term) {
-             input.addEventListener('input', calculateMortgage);
+             input.addEventListener('input', () => {
+                 // Sync Slider if it exists
+                 const slider = document.getElementById(input.id + 'Slider');
+                 if (slider) {
+                     slider.value = parseNum(input.value);
+                 }
+                 calculateMortgage();
+             });
         }
+    });
+
+    // Sync Sliders to Inputs
+    [inputs.overDavideSlider, inputs.overGiadaSlider, inputs.lumpDavideSlider, inputs.lumpGiadaSlider].forEach(slider => {
+        slider.addEventListener('input', () => {
+            const textInput = document.getElementById(slider.id.replace('Slider', ''));
+            textInput.value = parseInt(slider.value).toLocaleString('en-GB');
+            calculateMortgage();
+        });
     });
 
     // Initial Run
