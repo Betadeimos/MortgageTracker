@@ -265,6 +265,10 @@
 
         <div class="section-label">Deposits & Property</div>
         <div class="input-group">
+            <label for="propertyValue">Initial Property Value (£)</label>
+            <input type="text" id="propertyValue" value="530,000">
+        </div>
+        <div class="input-group">
             <label for="depositDavide">Davide Deposit (£)</label>
             <input type="text" id="depositDavide" value="116,000">
         </div>
@@ -382,6 +386,7 @@
         rate: document.getElementById('interestRate'),
         term: document.getElementById('termYears'),
         payment: document.getElementById('monthlyPayment'),
+        property: document.getElementById('propertyValue'),
         depDavide: document.getElementById('depositDavide'),
         depGiada: document.getElementById('depositGiada'),
         appreciation: document.getElementById('appreciationRate'),
@@ -548,7 +553,7 @@
         let isPaidOff = false;
         
         // Purchase Price for Appreciation
-        const purchasePrice = P + depD + depG;
+        const purchasePrice = parseNum(inputs.property.value);
 
         for (let month = 1; month <= n; month++) {
             if (isPaidOff && month > n) break; // Stop loop if done, but we need to fill yearly data if we want flat lines? No, we stop.
@@ -663,7 +668,7 @@
             const depD = parseNum(inputs.depDavide.value);
             const depG = parseNum(inputs.depGiada.value);
             const appRate = parseFloat(inputs.appreciation.value) / 100;
-            const purchasePrice = P + depD + depG;
+            const purchasePrice = parseNum(inputs.property.value);
 
             // Future Value = P * (1+r)^n
             const futureValue = purchasePrice * Math.pow(1 + appRate, year);
